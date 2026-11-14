@@ -3,6 +3,11 @@ import { TerrainData, ScientificTarget } from '../interfaces/index.js';
 
 const SCIENCE_INFLUENCE_RADIUS_METERS = 1000;
 
+export interface ScienceBenefitGridResult {
+    grid: number[];
+    maxBenefit: number;
+}
+
 @Injectable()
 export class BuildScienceBenefitGridUseCase {
     private readonly logger = new Logger(BuildScienceBenefitGridUseCase.name);
@@ -11,7 +16,7 @@ export class BuildScienceBenefitGridUseCase {
         regionName: string,
         terrain: TerrainData,
         targets: ScientificTarget[],
-    ): number[] {
+    ): ScienceBenefitGridResult {
         const totalCells = terrain.grid_rows * terrain.grid_cols;
         const benefitGrid = new Array<number>(totalCells).fill(0);
 
@@ -19,10 +24,11 @@ export class BuildScienceBenefitGridUseCase {
             this.logger.log(
                 `No scientific targets for ${regionName}; science benefit grid is all zero`,
             );
-            return benefitGrid;
+            return { grid: benefitGrid, maxBenefit: 0 };
         }
 
         const twoSigmaSq = 2 * SCIENCE_INFLUENCE_RADIUS_METERS ** 2;
+        let maxBenefit = 0;
 
         for (let row = 0; row < terrain.grid_rows; row++) {
             for (let col = 0; col < terrain.grid_cols; col++) {
@@ -39,15 +45,19 @@ export class BuildScienceBenefitGridUseCase {
                     totalBenefit += target.science_value * falloff;
                 }
 
+                if (totalBenefit > maxBenefit) {
+                    maxBenefit = totalBenefit;
+                }
+
                 const index = row * terrain.grid_cols + col;
                 benefitGrid[index] = totalBenefit;
             }
         }
 
         this.logger.log(
-            `Built science benefit grid for ${regionName} (${targets.length} target(s), radius ${SCIENCE_INFLUENCE_RADIUS_METERS}m)`,
+            `Built science benefit grid for ${regionName} (${targets.length} target(s), radius ${SCIENCE_INFLUENCE_RADIUS_METERS}m, max benefit ${maxBenefit.toFixed(2)})`,
         );
 
-        return benefitGrid;
+        return { grid: benefitGrid, maxBenefit };
     }
 }

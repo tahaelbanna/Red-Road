@@ -14,6 +14,7 @@ export class TerrainService implements OnModuleInit {
     private regions = new Map<string, TerrainData>();
     private scientificTargets = new Map<string, ScientificTarget[]>();
     private scienceBenefitGrids = new Map<string, number[]>();
+    private maxScienceBenefits = new Map<string, number>();
 
     constructor(
         private readonly loadRegionUseCase: LoadRegionUseCase,
@@ -35,12 +36,18 @@ export class TerrainService implements OnModuleInit {
         const targets = this.loadScientificTargetsUseCase.execute(regionName);
         this.scientificTargets.set(regionName, targets);
 
-        const benefitGrid = this.buildScienceBenefitGridUseCase.execute(
-            regionName,
-            terrain,
-            targets,
-        );
+        const { grid: benefitGrid, maxBenefit } =
+            this.buildScienceBenefitGridUseCase.execute(
+                regionName,
+                terrain,
+                targets,
+            );
         this.scienceBenefitGrids.set(regionName, benefitGrid);
+        this.maxScienceBenefits.set(regionName, maxBenefit);
+    }
+
+    getMaxScienceBenefit(regionName: string): number {
+        return this.maxScienceBenefits.get(regionName) ?? 0;
     }
 
     getRegion(regionName: string): TerrainData {

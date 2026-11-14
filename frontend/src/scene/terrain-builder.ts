@@ -2,7 +2,8 @@ import * as THREE from "three";
 import {
   HEIGHTMAP_PATH,
   MESH_RESOLUTION,
-  TERRAIN_SIZE_UNITS,
+  TERRAIN_HEIGHT_UNITS,
+  TERRAIN_WIDTH_UNITS,
   VERTICAL_EXAGGERATION,
 } from "../config/index";
 import {
@@ -25,8 +26,8 @@ export async function buildTerrainMesh(
   );
 
   const geometry = new THREE.PlaneGeometry(
-    TERRAIN_SIZE_UNITS,
-    TERRAIN_SIZE_UNITS,
+    TERRAIN_WIDTH_UNITS,
+    TERRAIN_HEIGHT_UNITS,
     MESH_RESOLUTION - 1,
     MESH_RESOLUTION - 1,
   );
@@ -34,7 +35,7 @@ export async function buildTerrainMesh(
 
   const elevationRange = meta.max_elevation_m - meta.min_elevation_m;
   appState.heightScaleUnits =
-    (elevationRange / 1000) * (TERRAIN_SIZE_UNITS / 89) * VERTICAL_EXAGGERATION;
+    (elevationRange / 1000) * (TERRAIN_HEIGHT_UNITS / 101.2) * VERTICAL_EXAGGERATION;
 
   const positions = geometry.attributes.position;
   for (let i = 0; i < positions.count; i++) {

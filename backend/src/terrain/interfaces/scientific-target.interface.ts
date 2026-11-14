@@ -1,6 +1,7 @@
 export interface ScientificTarget {
     id: string;
     name: string;
+    category?: 'point' | 'region';
     lat: number;
     lon: number;
     x: number;

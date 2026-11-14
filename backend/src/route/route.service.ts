@@ -28,14 +28,18 @@ export class RouteService {
 
     calculateCellCost(
         region: string,
-        row: number,
-        col: number,
+        fromRow: number,
+        fromCol: number,
+        toRow: number,
+        toCol: number,
         priorities: Priorities,
     ): number {
         return this.calculateCellCostUseCase.execute(
             region,
-            row,
-            col,
+            fromRow,
+            fromCol,
+            toRow,
+            toCol,
             priorities,
         );
     }

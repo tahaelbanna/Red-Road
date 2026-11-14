@@ -3,6 +3,7 @@ import { TerrainService } from '../../terrain/terrain.service.js';
 import { RoutePlanRequest, RoutePlanResult } from '../interfaces/index.js';
 import { findPath } from '../pathfinding.js';
 import { ResolvePrioritiesUseCase } from './resolve-priorities.use-case.js';
+import { CalculateCellCostUseCase } from './calculate-cell-cost.use-case.js';
 import { EnrichPathUseCase } from './enrich-path.use-case.js';
 import { ComputeMetricsUseCase } from './compute-metrics.use-case.js';
 
@@ -13,6 +14,7 @@ export class PlanRouteUseCase {
     constructor(
         private readonly terrainService: TerrainService,
         private readonly resolvePrioritiesUseCase: ResolvePrioritiesUseCase,
+        private readonly calculateCellCostUseCase: CalculateCellCostUseCase,
         private readonly enrichPathUseCase: EnrichPathUseCase,
         private readonly computeMetricsUseCase: ComputeMetricsUseCase,
     ) {}
@@ -24,12 +26,6 @@ export class PlanRouteUseCase {
             overrides,
         );
         const terrain = this.terrainService.getRegion(region);
-        const maxSlope = terrain.max_walkable_slope_deg;
-
-        const isImpassable = (row: number, col: number) => {
-            const cell = this.terrainService.getCell(region, row, col);
-            return cell.hazard >= 1;
-        };
 
         const edgeCost = (
             fromRow: number,
@@ -37,41 +33,27 @@ export class PlanRouteUseCase {
             toRow: number,
             toCol: number,
         ): number => {
-            if (isImpassable(toRow, toCol)) return Infinity;
-
-            const isDiagonal = fromRow !== toRow && fromCol !== toCol;
-            const distanceCost = isDiagonal ? Math.SQRT2 : 1;
-
-            const cell = this.terrainService.getCell(region, toRow, toCol);
-            const scienceBenefit = this.terrainService.getScienceBenefit(
+            return this.calculateCellCostUseCase.execute(
                 region,
+                fromRow,
+                fromCol,
                 toRow,
                 toCol,
+                priorities,
             );
-
-            const hazardPenalty = priorities.safety * cell.hazard;
-            const slopePenalty =
-                priorities.slope *
-                (cell.slope === null ? 1 : Math.min(cell.slope / maxSlope, 1));
-
-            const baseCost =
-                Math.max(priorities.distance, 0.01) * distanceCost +
-                hazardPenalty +
-                slopePenalty;
-
-            const scienceDiscount =
-                1 + priorities.science * scienceBenefit * 20;
-
-            return baseCost / scienceDiscount;
         };
 
-        const minPossibleCellCost =
-            Math.max(priorities.distance, 0.01) /
-            (1 + priorities.science * 1.0 * 20);
-        const heuristicWeight = minPossibleCellCost;
+        const maxScienceBenefit =
+            this.terrainService.getMaxScienceBenefit(region);
+        const maxScienceDiscount =
+            1 + priorities.science * maxScienceBenefit * 20;
+        const heuristicWeight =
+            priorities.distance > 0
+                ? priorities.distance / maxScienceDiscount
+                : 0;
 
         this.logger.log(
-            `Planning route in ${region} from (${start.row},${start.col}) to (${end.row},${end.col})`,
+            `Planning route in ${region} from (${start.row},${start.col}) to (${end.row},${end.col}) with heuristicWeight=${heuristicWeight.toFixed(6)}`,
         );
 
         const result = findPath(

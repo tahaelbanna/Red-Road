@@ -77,6 +77,7 @@ export function findPath(
     edgeCost: EdgeCostFn,
     heuristicWeight: number,
 ): AStarResult {
+    const startTime = performance.now();
     const totalCells = gridRows * gridCols;
     const index = (row: number, col: number) => row * gridCols + col;
 
@@ -90,6 +91,7 @@ export function findPath(
     gScore[startIdx] = 0;
 
     const heuristic = (row: number, col: number) => {
+        if (heuristicWeight <= 0) return 0;
         const dr = row - end.row;
         const dc = col - end.col;
         return heuristicWeight * Math.sqrt(dr * dr + dc * dc);
@@ -97,17 +99,22 @@ export function findPath(
 
     const open = new MinHeap<number>();
     open.push(heuristic(start.row, start.col), startIdx);
+    let nodesExpanded = 0;
 
     while (open.size > 0) {
         const currentIdx = open.pop()!;
         if (visited[currentIdx]) continue;
         visited[currentIdx] = 1;
+        nodesExpanded++;
 
         if (currentIdx === endIdx) {
+            const executionTimeMs = performance.now() - startTime;
             return {
                 found: true,
                 path: reconstructPath(cameFrom, endIdx, gridCols),
                 totalCost: gScore[endIdx],
+                nodesExpanded,
+                executionTimeMs,
             };
         }
 
@@ -148,7 +155,29 @@ export function findPath(
         }
     }
 
-    return { found: false, path: [], totalCost: Infinity };
+    const executionTimeMs = performance.now() - startTime;
+    return {
+        found: false,
+        path: [],
+        totalCost: Infinity,
+        nodesExpanded,
+        executionTimeMs,
+    };
+}
+
+/**
+ * Dijkstra Reference Implementation
+ * Runs pathfinding on the exact same graph, constraints, and cost function with h(n) = 0.
+ * Serves as the ground-truth benchmark to verify A* optimality and admissibility.
+ */
+export function dijkstraFindPath(
+    gridRows: number,
+    gridCols: number,
+    start: GridPosition,
+    end: GridPosition,
+    edgeCost: EdgeCostFn,
+): AStarResult {
+    return findPath(gridRows, gridCols, start, end, edgeCost, 0);
 }
 
 function reconstructPath(
