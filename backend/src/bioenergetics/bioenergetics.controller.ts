@@ -21,6 +21,14 @@ export class BioenergeticsController {
         if (!dto || !Array.isArray(dto.path) || dto.path.length === 0) {
             throw new BadRequestException('A valid non-empty route path array is required.');
         }
+        if (
+            dto.profile?.suitLeakageRateLpm !== undefined &&
+            (typeof dto.profile.suitLeakageRateLpm !== 'number' ||
+                !Number.isFinite(dto.profile.suitLeakageRateLpm) ||
+                dto.profile.suitLeakageRateLpm < 0)
+        ) {
+            throw new BadRequestException('suitLeakageRateLpm must be a finite, non-negative number.');
+        }
 
         const region = dto.region || 'jezero_crater';
         const stationaryTimeHours = Math.max(0, dto.stationaryTimeHours ?? 0);
@@ -40,6 +48,14 @@ export class BioenergeticsController {
     ): EvaFeasibilityResult {
         if (!dto || !Array.isArray(dto.path) || dto.path.length === 0) {
             throw new BadRequestException('A valid non-empty route path array is required for EVA assessment.');
+        }
+        if (
+            dto.profile?.suitLeakageRateLpm !== undefined &&
+            (typeof dto.profile.suitLeakageRateLpm !== 'number' ||
+                !Number.isFinite(dto.profile.suitLeakageRateLpm) ||
+                dto.profile.suitLeakageRateLpm < 0)
+        ) {
+            throw new BadRequestException('suitLeakageRateLpm must be a finite, non-negative number.');
         }
 
         const region = dto.region || 'jezero_crater';

@@ -27,6 +27,8 @@ export interface EvaFeasibilityResult {
   totalMissionDurationHours: number;
   totalMissionEnergyKcal: number;
   totalMissionEnergyKJ: number;
+  totalMissionMetabolicOxygenEquivalentGrams: number;
+  totalMissionStructuralLeakageGrams: number;
   totalMissionOxygenDrawGrams: number;
   totalMissionOxygenDrawLiters: number;
   remainingOxygenGrams: number;

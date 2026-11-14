@@ -20,7 +20,7 @@ export interface AstronautProfile {
     basalMetabolicRatePerKg: number; // Default: 1.20 W/kg (ESTIMATED: resting baseline)
 
     // Life-Support Scenario Constraints
-    suitLeakageRateLpm: number;      // Default: 0.10 L/min (UNVERIFIED for current suit: legacy 100 sccm)
+    suitLeakageRateLpm: number;      // Default: 0.0 L/min baseline (opt-in scenario assumption; e.g. 0.10 for legacy 100 sccm)
     usableOxygenGrams: number;       // Default: 1000.0 g (ASSUMED: scenario capacity)
     oxygenReserveFraction: number;   // Default: 0.30 (ASSUMED: 30% flight rule reserve)
     maxEvaDurationMinutes: number;    // Default: 480.0 min (ASSUMED / Mission Profile Constraint)

@@ -43,9 +43,10 @@ export const OXYGEN_DENSITY_STPD = 1.429;   // g/L STPD (0 deg C, 101.325 kPa) (
 export const JOULES_PER_KCAL = 4184.0;      // J/kcal (DEFINED)
 
 // Spacesuit Structural Leakage
-// Legacy Shuttle/ISS EMU spec limit (100 sccm = 0.10 L/min)
-// UNVERIFIED for current suit applicability - explicitly configurable
-export const DEFAULT_SUIT_LEAKAGE_LPM = 0.10; // 100 sccm
+// Opt-in scenario assumption (0.0 L/min baseline default)
+// Legacy Shuttle/ISS EMU spec limit (100 sccm = 0.10 L/min) is UNVERIFIED for current suit applicability
+export const DEFAULT_SUIT_LEAKAGE_LPM = 0.0; // 0.0 L/min baseline default (opt-in)
+export const SCENARIO_SUIT_LEAKAGE_100_SCCM_LPM = 0.10; // 100 sccm scenario benchmark
 
 // Life Support Scenario Defaults
 export const DEFAULT_USABLE_OXYGEN_GRAMS = 1000.0; // 1.0 kg usable O2 (ASSUMED)

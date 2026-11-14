@@ -58,9 +58,17 @@ export class EvaluateEvaFeasibilityUseCase {
             outbound.estimatedTotalEnergyKJ + returnTraversal.estimatedTotalEnergyKJ;
         const totalMissionEnergyKcal =
             outbound.estimatedTotalEnergyKcal + returnTraversal.estimatedTotalEnergyKcal;
+        // Independent aggregation of metabolic oxygen and structural suit leakage
+        const totalMissionMetabolicOxygenEquivalentGrams =
+            outbound.estimatedTotalMetabolicOxygenEquivalentGrams +
+            returnTraversal.estimatedTotalMetabolicOxygenEquivalentGrams;
+        const totalMissionStructuralLeakageGrams =
+            outbound.estimatedTotalStructuralLeakageGrams +
+            returnTraversal.estimatedTotalStructuralLeakageGrams;
+
+        // Combined Estimated Oxygen Draw
         const totalMissionOxygenDrawGrams =
-            outbound.estimatedTotalOxygenDrawGrams +
-            returnTraversal.estimatedTotalOxygenDrawGrams;
+            totalMissionMetabolicOxygenEquivalentGrams + totalMissionStructuralLeakageGrams;
         const totalMissionOxygenDrawLiters =
             outbound.estimatedTotalOxygenDrawLiters +
             returnTraversal.estimatedTotalOxygenDrawLiters;
@@ -100,7 +108,7 @@ export class EvaluateEvaFeasibilityUseCase {
 
         if (!isOxygenFeasible) {
             constraintBreaches.push(
-                `EXCEEDS_CONFIGURED_OXYGEN_EQUIVALENT_BUDGET: Oxygen draw (${totalMissionOxygenDrawGrams.toFixed(1)}g) breaches 30% reserve threshold (budget: ${nominalOxygenBudgetGrams.toFixed(1)}g)`,
+                `EXCEEDS_CONFIGURED_PLSS_OXYGEN_BUDGET: Oxygen draw (${totalMissionOxygenDrawGrams.toFixed(1)}g) breaches 30% reserve threshold (budget: ${nominalOxygenBudgetGrams.toFixed(1)}g)`,
             );
         }
 
@@ -178,6 +186,8 @@ export class EvaluateEvaFeasibilityUseCase {
             totalMissionDurationHours,
             totalMissionEnergyKcal,
             totalMissionEnergyKJ,
+            totalMissionMetabolicOxygenEquivalentGrams,
+            totalMissionStructuralLeakageGrams,
             totalMissionOxygenDrawGrams,
             totalMissionOxygenDrawLiters,
             remainingOxygenGrams,

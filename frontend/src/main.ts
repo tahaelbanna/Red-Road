@@ -346,6 +346,7 @@ export async function requestAndDrawRoute() {
 
   if (appState.statusEl) appState.statusEl.textContent = "Planning route...";
   showExplanationLoadingState();
+  updateFeasibilityResultUI("LOADING");
 
   try {
     const response = await planRoute({
@@ -407,7 +408,7 @@ export async function requestAndDrawRoute() {
       console.warn("No path found between the selected points.");
       hideRouteReport();
       showExplanationErrorState();
-      updateFeasibilityResultUI(null);
+      updateFeasibilityResultUI({ error: "No walkable route found between selected waypoints." });
     }
 
     updateStatusText(response.found ? response.metrics : undefined);
@@ -420,7 +421,7 @@ export async function requestAndDrawRoute() {
     hideRouteReport();
     showExplanationErrorState();
     updateStatusText();
-    updateFeasibilityResultUI(null);
+    updateFeasibilityResultUI({ error: "Route planning or life-support assessment failed." });
     return false;
   }
 }

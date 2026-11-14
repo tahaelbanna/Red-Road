@@ -121,7 +121,16 @@ export class CalculateEdgeBioenergeticsUseCase {
         const estimatedMetabolicOxygenEquivalentGrams =
             estimatedMetabolicOxygenEquivalentLiters * OXYGEN_DENSITY_STPD;
 
-        const suitLeakageRateLpm = Math.max(0, profile.suitLeakageRateLpm);
+        if (
+            typeof profile.suitLeakageRateLpm !== 'number' ||
+            !Number.isFinite(profile.suitLeakageRateLpm) ||
+            profile.suitLeakageRateLpm < 0
+        ) {
+            throw new Error(
+                `Invalid suitLeakageRateLpm: ${profile.suitLeakageRateLpm}. Must be a finite non-negative number.`,
+            );
+        }
+        const suitLeakageRateLpm = profile.suitLeakageRateLpm;
         const estimatedStructuralLeakageLiters =
             suitLeakageRateLpm * (traversalDurationSeconds / 60.0);
         const estimatedStructuralLeakageGrams =

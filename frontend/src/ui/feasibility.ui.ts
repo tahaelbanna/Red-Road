@@ -36,6 +36,74 @@ export function getFeasibilityStatusStyle(status: string): { bg: string; border:
   };
 }
 
+export interface SuitLeakageValidationResult {
+  valid: boolean;
+  message?: string;
+  value?: number;
+}
+
+export function validateSuitLeakageInput(raw: string): SuitLeakageValidationResult {
+  const trimmed = raw.trim();
+  if (trimmed === "") {
+    return {
+      valid: false,
+      message: "Suit leakage is required (0.00 to 1.00 L/min).",
+    };
+  }
+
+  const val = Number(trimmed);
+  if (!Number.isFinite(val) || Number.isNaN(val)) {
+    return {
+      valid: false,
+      message: "Suit leakage must be a finite numeric value.",
+    };
+  }
+
+  if (val < 0) {
+    return {
+      valid: false,
+      message: "Suit leakage cannot be negative (min 0.00 L/min).",
+    };
+  }
+
+  if (val > 1.0) {
+    return {
+      valid: false,
+      message: "Suit leakage cannot exceed 1.00 L/min.",
+    };
+  }
+
+  return {
+    valid: true,
+    value: val,
+  };
+}
+
+export function applySuitLeakageValidation(
+  raw: string,
+  inputEl: Pick<HTMLInputElement, "value"> & { style: Partial<CSSStyleDeclaration> },
+  errorEl: Pick<HTMLElement, "textContent"> & { style: Partial<CSSStyleDeclaration> },
+  onValidChange: (val: number) => void,
+  onRecalculate: () => void,
+): boolean {
+  const result = validateSuitLeakageInput(raw);
+  if (!result.valid) {
+    inputEl.style.borderColor = "var(--critical)";
+    inputEl.style.background = "rgba(208, 59, 59, 0.2)";
+    errorEl.textContent = result.message ?? "Invalid leakage rate.";
+    errorEl.style.display = "block";
+    return false;
+  }
+
+  inputEl.style.borderColor = "var(--line)";
+  inputEl.style.background = "rgba(0,0,0,0.5)";
+  errorEl.textContent = "";
+  errorEl.style.display = "none";
+  onValidChange(result.value!);
+  onRecalculate();
+  return true;
+}
+
 export function buildMissionFeasibilityUI(
   navParent: HTMLElement,
   panelParent: HTMLElement,
@@ -85,6 +153,7 @@ export function buildMissionFeasibilityUI(
     min: string,
     max: string,
     onChange: (v: number) => void,
+    customHandler?: (inp: HTMLInputElement) => void,
   ) => {
     const row = document.createElement("div");
     row.style.display = "flex";
@@ -110,10 +179,21 @@ export function buildMissionFeasibilityUI(
     inp.style.padding = "2px 4px";
     inp.style.borderRadius = "3px";
 
-    inp.addEventListener("change", () => {
-      onChange(Number(inp.value));
-      onConfigChange();
-    });
+    if (customHandler) {
+      customHandler(inp);
+    } else {
+      inp.addEventListener("change", () => {
+        let val = Number(inp.value);
+        if (Number.isNaN(val)) val = Number(value);
+        const minVal = Number(min);
+        const maxVal = Number(max);
+        if (!Number.isNaN(minVal) && val < minVal) val = minVal;
+        if (!Number.isNaN(maxVal) && val > maxVal) val = maxVal;
+        inp.value = String(val);
+        onChange(val);
+        onConfigChange();
+      });
+    }
 
     row.appendChild(lbl);
     row.appendChild(inp);
@@ -187,6 +267,50 @@ export function buildMissionFeasibilityUI(
     ),
   );
 
+  const leakageErrorEl = document.createElement("div");
+  leakageErrorEl.id = "suit-leakage-error";
+  leakageErrorEl.className = "sub";
+  leakageErrorEl.style.display = "none";
+  leakageErrorEl.style.color = "var(--critical)";
+  leakageErrorEl.style.fontSize = "10px";
+  leakageErrorEl.style.fontWeight = "600";
+  leakageErrorEl.style.marginTop = "2px";
+  leakageErrorEl.style.marginBottom = "4px";
+
+  astroBox.appendChild(
+    mkInput(
+      "Suit Leakage (L/min)",
+      currentAstronautProfile.suitLeakageRateLpm,
+      "0.01",
+      "0",
+      "1.0",
+      (v) => (currentAstronautProfile.suitLeakageRateLpm = v),
+      (inp) => {
+        const handler = () => {
+          applySuitLeakageValidation(
+            inp.value,
+            inp,
+            leakageErrorEl,
+            (v) => (currentAstronautProfile.suitLeakageRateLpm = v),
+            onConfigChange,
+          );
+        };
+        inp.addEventListener("input", handler);
+        inp.addEventListener("change", handler);
+      },
+    ),
+  );
+
+  astroBox.appendChild(leakageErrorEl);
+
+  const leakageNote = document.createElement("div");
+  leakageNote.className = "sub muted";
+  leakageNote.style.fontSize = "9px";
+  leakageNote.style.marginTop = "2px";
+  leakageNote.style.marginBottom = "4px";
+  leakageNote.textContent = "Default 0.00 L/min baseline. Optional scenario assumption (e.g. 0.10 L/min for 100 sccm).";
+  astroBox.appendChild(leakageNote);
+
   content.appendChild(astroBox);
 
   // Section 2: Traversal & Operational Parameters
@@ -241,6 +365,26 @@ export function updateFeasibilityResultUI(result: EvaFeasibilityResult | any) {
     return;
   }
 
+  if (result === "LOADING") {
+    resultArea.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px; padding: 12px; background: rgba(255,154,60,0.08); border: 1px dashed var(--line); border-radius: 4px;">
+        <span style="display:inline-block; width:12px; height:12px; border:2px solid var(--hud); border-top-color:transparent; border-radius:50%; animation: spin 0.8s linear infinite;"></span>
+        <span class="sub" style="color:var(--hud);">Evaluating bioenergetics & safe walkback audit...</span>
+      </div>
+    `;
+    return;
+  }
+
+  if (result?.error) {
+    resultArea.innerHTML = `
+      <div style="padding: 10px; background: rgba(208,59,59,0.15); border: 1px solid var(--critical); border-radius: 4px;">
+        <span style="font-weight: 700; color: var(--critical);">EVALUATION ERROR</span>
+        <div class="sub" style="margin-top: 4px;">${result.error}</div>
+      </div>
+    `;
+    return;
+  }
+
   // Handle rich EvaFeasibilityResult
   if (result.outbound && result.totalMissionDurationHours !== undefined) {
     const eva = result as EvaFeasibilityResult;
@@ -276,6 +420,27 @@ export function updateFeasibilityResultUI(result: EvaFeasibilityResult | any) {
           <div class="k" style="font-size: 11px;">O2 REMAINING MARGIN</div>
           <div class="v" style="font-size: 15px; color: ${eva.remainingOxygenGrams >= eva.configuredOxygenReserveGrams ? "var(--good)" : "var(--warning)"}">${(eva.remainingOxygenGrams - eva.configuredOxygenReserveGrams).toFixed(0)} <small>g</small></div>
           <div style="font-size: 10px; color: var(--text-3);">30% Reserve: ${eva.configuredOxygenReserveGrams.toFixed(0)}g</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 12px; font-size: 11px; background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 4px; padding: 8px;">
+        <div style="font-weight: 700; margin-bottom: 6px; color: var(--hud); font-size: 11px; letter-spacing: 0.5px;">OXYGEN ACCOUNTING BREAKDOWN</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span>ESTIMATED TOTAL O2 DRAW:</span>
+          <span style="font-weight: 700; color: ${eva.isOxygenFeasible ? "var(--good)" : "var(--critical)"};">
+            ${eva.totalMissionOxygenDrawGrams.toFixed(1)} g (${(eva.totalMissionOxygenDrawGrams / 1000).toFixed(2)} kg)
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: var(--text);">
+          <span>METABOLIC O2 EQUIVALENT:</span>
+          <span>${eva.totalMissionMetabolicOxygenEquivalentGrams !== undefined ? eva.totalMissionMetabolicOxygenEquivalentGrams.toFixed(1) : eva.totalMissionOxygenDrawGrams.toFixed(1)} g</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: var(--text);">
+          <span>STRUCTURAL LEAKAGE:</span>
+          <span>${(eva.totalMissionStructuralLeakageGrams && eva.totalMissionStructuralLeakageGrams > 0.001) ? `${eva.totalMissionStructuralLeakageGrams.toFixed(1)} g` : "0.0 g (0 sccm / baseline)"}</span>
+        </div>
+        <div style="font-size: 9px; color: var(--text-3); margin-top: 6px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 4px; font-style: italic;">
+          Metabolic oxygen equivalent and optional suit leakage are separate model estimates. Actual PLSS performance is not validated.
         </div>
       </div>
 
@@ -332,7 +497,7 @@ export function updateFeasibilityResultUI(result: EvaFeasibilityResult | any) {
 
     html += `
       <div style="font-size: 9px; color: var(--text-3); margin-top: 10px; border-top: 1px solid var(--line); padding-top: 6px; font-style: italic;">
-        <strong>SCIENTIFIC NOTICE:</strong> ${eva.uncertaintyNotice || "Bioenergetic estimates derived from Minetti (2002) Mars-adjusted polynomial and Tobler walking speeds. Does NOT represent certified NASA flight clearance. Suit leakage (100 sccm) is unverified."}
+        <strong>SCIENTIFIC NOTICE:</strong> ${eva.uncertaintyNotice || "Bioenergetic estimates derived from Minetti (2002) Mars-adjusted polynomial and Tobler walking speeds. Does NOT represent certified NASA flight clearance. Suit leakage is an unverified scenario assumption."}
       </div>
     `;
 

@@ -30,6 +30,9 @@ export interface EvaFeasibilityResult {
     totalMissionDurationHours: number;
     totalMissionEnergyKcal: number;
     totalMissionEnergyKJ: number;
+    // Mission Oxygen Accounting (Metabolic vs Leakage Breakdown at STPD)
+    totalMissionMetabolicOxygenEquivalentGrams: number;
+    totalMissionStructuralLeakageGrams: number;
     totalMissionOxygenDrawGrams: number;
     totalMissionOxygenDrawLiters: number;
     remainingOxygenGrams: number;

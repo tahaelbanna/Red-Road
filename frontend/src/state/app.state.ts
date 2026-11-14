@@ -22,7 +22,7 @@ export const currentAstronautProfile: AstronautProfile = {
   internalWorkFraction: 0.40,
   suitJointWorkNominalWatts: 65.0,
   basalMetabolicRatePerKg: 1.20,
-  suitLeakageRateLpm: 0.10,
+  suitLeakageRateLpm: 0.0,
   usableOxygenGrams: 1000.0,
   oxygenReserveFraction: 0.30,
   maxEvaDurationMinutes: 480.0,

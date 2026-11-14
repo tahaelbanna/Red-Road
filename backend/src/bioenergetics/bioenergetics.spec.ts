@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { BioenergeticsService } from './bioenergetics.service.js';
+import { BioenergeticsController } from './bioenergetics.controller.js';
 import { CalculateEdgeBioenergeticsUseCase } from './use-cases/calculate-edge-bioenergetics.use-case.js';
 import { CalculateRouteBioenergeticsUseCase } from './use-cases/calculate-route-bioenergetics.use-case.js';
 import { EvaluateSafeReturnUseCase } from './use-cases/evaluate-safe-return.use-case.js';
@@ -262,6 +263,59 @@ describe('Bioenergetics Domain Engine', () => {
         });
     });
 
+    describe('Level 4: Edge Cases & Invalid Inputs', () => {
+        it('should handle zero-distance / single-point path gracefully', () => {
+            const singlePoint = [{ row: 0, col: 0 }];
+            const summary = service.calculateRoute('jezero_crater', singlePoint);
+            expect(summary.edges.length).toBe(0);
+            expect(summary.totalHorizontalDistanceMeters).toBe(0);
+            expect(summary.totalDurationSeconds).toBe(0);
+            expect(summary.estimatedTotalEnergyJoules).toBe(0);
+            expect(summary.estimatedTotalOxygenDrawGrams).toBe(0);
+        });
+
+        it('should trigger duration constraint breach when traversal duration exceeds 480 minutes', () => {
+            const path = [
+                { row: 0, col: 0 },
+                { row: 1, col: 0 },
+            ];
+
+            // Set stationary time to 9.0 hours (exceeding 8.0h limit)
+            const feasibility = service.evaluateEvaFeasibility(
+                'jezero_crater',
+                path,
+                undefined,
+                9.0,
+            );
+
+            expect(feasibility.status).toBe('CRITICAL');
+            expect(feasibility.isDurationFeasible).toBe(false);
+            expect(
+                feasibility.constraintBreaches.some(b => b.includes('EXCEEDS_CONFIGURED_EVA_DURATION')),
+            ).toBe(true);
+        });
+
+        it('should reject invalid empty path arrays at the controller level', () => {
+            const controller = new BioenergeticsController(service);
+
+            expect(() => controller.calculateRouteBioenergetics({ region: 'jezero_crater', path: [] })).toThrow();
+            expect(() => controller.assessEvaFeasibility({ region: 'jezero_crater', path: [] })).toThrow();
+        });
+
+        it('should return authoritative default profile via controller', () => {
+            const controller = new BioenergeticsController(service);
+
+            const profile = controller.getDefaultProfile();
+            expect(profile.crewMassKg).toBe(80.0);
+            expect(profile.suitMassKg).toBe(120.0);
+            expect(profile.payloadMassKg).toBe(15.0);
+            expect(profile.usableOxygenGrams).toBe(1000.0);
+            expect(profile.oxygenReserveFraction).toBe(0.30);
+            expect(profile.maxEvaDurationMinutes).toBe(480.0);
+            expect(profile.suitLeakageRateLpm).toBe(0.0);
+        });
+    });
+
     describe('Level 5: Sensitivity Analysis Bounds', () => {
         it('should reflect sensitivity of internal work fraction alpha within documented +/-6.6% range', () => {
             const pNom = DEFAULT_ASTRONAUT_PROFILE;
@@ -367,7 +421,150 @@ describe('Bioenergetics Domain Engine', () => {
             expect(feasibility.status).toBe('CRITICAL');
             expect(feasibility.isOxygenFeasible).toBe(false);
             expect(feasibility.pointOfSafeReturnViolated).toBe(true);
-            expect(feasibility.constraintBreaches.some(b => b.includes('EXCEEDS_CONFIGURED_OXYGEN_EQUIVALENT_BUDGET'))).toBe(true);
+            expect(feasibility.constraintBreaches.some(b => b.includes('EXCEEDS_CONFIGURED_PLSS_OXYGEN_BUDGET'))).toBe(true);
+        });
+    });
+
+    describe('Oxygen Accounting & Leakage Separation Regression', () => {
+        const path = [
+            { row: 0, col: 0 },
+            { row: 1, col: 0 },
+            { row: 2, col: 0 },
+        ];
+
+        it('Test A (Zero-Leakage Baseline): default profile produces zero leakage and total draw equals metabolic equivalent', () => {
+            const defaultProfile = service.getDefaultProfile();
+            expect(defaultProfile.suitLeakageRateLpm).toBe(0.0);
+
+            // Single edge evaluation
+            const edge = edgeUseCase.execute(
+                { horizontalDistanceMeters: 100, elevationDeltaMeters: 0 },
+                defaultProfile,
+            );
+            expect(edge.estimatedStructuralLeakageLiters).toBe(0);
+            expect(edge.estimatedStructuralLeakageGrams).toBe(0);
+            expect(edge.estimatedTotalOxygenDrawGrams).toBeCloseTo(edge.estimatedMetabolicOxygenEquivalentGrams, 6);
+
+            // EVA feasibility evaluation
+            const feasibility = service.evaluateEvaFeasibility('jezero_crater', path, defaultProfile, 1.0);
+            expect(feasibility.totalMissionStructuralLeakageGrams).toBe(0);
+            expect(feasibility.totalMissionOxygenDrawGrams).toBeCloseTo(feasibility.totalMissionMetabolicOxygenEquivalentGrams, 4);
+        });
+
+        it('Test B (Explicit Leakage Scenario): 0.10 L/min leakage over 60 min yields exactly 6.0 L and 8.574 g O2', () => {
+            const scenarioProfile = {
+                ...DEFAULT_ASTRONAUT_PROFILE,
+                suitLeakageRateLpm: 0.10, // 100 sccm
+            };
+
+            const stationaryEdge = edgeUseCase.execute(
+                {
+                    horizontalDistanceMeters: 0,
+                    elevationDeltaMeters: 0,
+                    isStationary: true,
+                    stationaryDurationSeconds: 3600, // 60 minutes
+                },
+                scenarioProfile,
+            );
+
+            // 0.10 L/min * 60 min = 6.0 L
+            expect(stationaryEdge.estimatedStructuralLeakageLiters).toBeCloseTo(6.0, 4);
+            // 6.0 L * 1.429 g/L = 8.574 g
+            expect(stationaryEdge.estimatedStructuralLeakageGrams).toBeCloseTo(8.574, 4);
+            // Total draw equals metabolic equivalent + structural leakage
+            expect(stationaryEdge.estimatedTotalOxygenDrawGrams).toBeCloseTo(
+                stationaryEdge.estimatedMetabolicOxygenEquivalentGrams + 8.574,
+                4,
+            );
+        });
+
+        it('Test C (Route Aggregation): mission totals equal sum of outbound and return traversal components', () => {
+            const scenarioProfile = {
+                ...DEFAULT_ASTRONAUT_PROFILE,
+                suitLeakageRateLpm: 0.10,
+            };
+            const stationaryHours = 0.5;
+
+            const feasibility = service.evaluateEvaFeasibility(
+                'jezero_crater',
+                path,
+                scenarioProfile,
+                stationaryHours,
+            );
+
+            // Metabolic oxygen equivalent sum
+            const expectedMetabolicGrams =
+                feasibility.outbound.estimatedTotalMetabolicOxygenEquivalentGrams +
+                feasibility.returnTraversal.estimatedTotalMetabolicOxygenEquivalentGrams;
+            expect(feasibility.totalMissionMetabolicOxygenEquivalentGrams).toBeCloseTo(expectedMetabolicGrams, 4);
+
+            // Structural leakage sum (including stationary pause embedded in outbound route)
+            const expectedLeakageGrams =
+                feasibility.outbound.estimatedTotalStructuralLeakageGrams +
+                feasibility.returnTraversal.estimatedTotalStructuralLeakageGrams;
+            expect(feasibility.totalMissionStructuralLeakageGrams).toBeCloseTo(expectedLeakageGrams, 4);
+
+            // Total draw equals metabolic + leakage
+            expect(feasibility.totalMissionOxygenDrawGrams).toBeCloseTo(
+                feasibility.totalMissionMetabolicOxygenEquivalentGrams + feasibility.totalMissionStructuralLeakageGrams,
+                4,
+            );
+        });
+
+        it('Test D (Invalid Inputs): rejects negative, NaN, and infinite leakage values at service and controller levels', () => {
+            const controller = new BioenergeticsController(service);
+
+            // Service level validation via mergeProfile
+            expect(() => service.mergeProfile({ suitLeakageRateLpm: -0.05 })).toThrow(
+                /Invalid suitLeakageRateLpm/,
+            );
+            expect(() => service.mergeProfile({ suitLeakageRateLpm: NaN })).toThrow(
+                /Invalid suitLeakageRateLpm/,
+            );
+            expect(() => service.mergeProfile({ suitLeakageRateLpm: Infinity })).toThrow(
+                /Invalid suitLeakageRateLpm/,
+            );
+
+            // Edge use case validation
+            expect(() =>
+                edgeUseCase.execute(
+                    { horizontalDistanceMeters: 100, elevationDeltaMeters: 0 },
+                    { ...DEFAULT_ASTRONAUT_PROFILE, suitLeakageRateLpm: -1 },
+                ),
+            ).toThrow(/Must be a finite non-negative number/);
+
+            // Controller level validation
+            expect(() =>
+                controller.calculateRouteBioenergetics({
+                    region: 'jezero_crater',
+                    path,
+                    profile: { suitLeakageRateLpm: -0.1 },
+                }),
+            ).toThrow(/suitLeakageRateLpm must be a finite, non-negative number/);
+
+            expect(() =>
+                controller.assessEvaFeasibility({
+                    region: 'jezero_crater',
+                    path,
+                    profile: { suitLeakageRateLpm: NaN },
+                }),
+            ).toThrow(/suitLeakageRateLpm must be a finite, non-negative number/);
+        });
+
+        it('Test F (Backwards Compatibility): legacy totalMissionOxygenDraw fields and remaining balance remain consistent', () => {
+            const feasibility = service.evaluateEvaFeasibility('jezero_crater', path);
+
+            expect(typeof feasibility.totalMissionOxygenDrawGrams).toBe('number');
+            expect(typeof feasibility.totalMissionOxygenDrawLiters).toBe('number');
+            expect(feasibility.totalMissionOxygenDrawGrams).toBeGreaterThan(0);
+            expect(feasibility.totalMissionOxygenDrawLiters).toBeCloseTo(
+                feasibility.totalMissionOxygenDrawGrams / 1.429,
+                3,
+            );
+            expect(feasibility.remainingOxygenGrams).toBeCloseTo(
+                DEFAULT_ASTRONAUT_PROFILE.usableOxygenGrams - feasibility.totalMissionOxygenDrawGrams,
+                4,
+            );
         });
     });
 });

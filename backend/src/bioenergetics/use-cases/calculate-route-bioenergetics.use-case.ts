@@ -4,7 +4,7 @@ import { AstronautProfile } from '../interfaces/astronaut-profile.interface.js';
 import { RouteBioenergeticsSummary } from '../interfaces/route-bioenergetics.interface.js';
 import { EdgeBioenergeticsResult } from '../interfaces/edge-bioenergetics.interface.js';
 import { CalculateEdgeBioenergeticsUseCase } from './calculate-edge-bioenergetics.use-case.js';
-import { TERRAIN_IMPEDANCE } from '../constants/bioenergetics.constants.js';
+import { JOULES_PER_KCAL, TERRAIN_IMPEDANCE } from '../constants/bioenergetics.constants.js';
 
 export interface RouteBioenergeticsInput {
     region: string;
@@ -96,8 +96,8 @@ export class CalculateRouteBioenergeticsUseCase {
             if (edgeResult.slopeAngleDegrees > maxInclineSlopeDegrees) {
                 maxInclineSlopeDegrees = edgeResult.slopeAngleDegrees;
             }
-            if (edgeResult.slopeAngleDegrees < maxDeclineSlopeDegrees) {
-                maxDeclineSlopeDegrees = edgeResult.slopeAngleDegrees;
+            if (edgeResult.slopeAngleDegrees < 0 && Math.abs(edgeResult.slopeAngleDegrees) > maxDeclineSlopeDegrees) {
+                maxDeclineSlopeDegrees = Math.abs(edgeResult.slopeAngleDegrees);
             }
 
             if (edgeResult.grossMetabolicPowerWatts > peakMetabolicPowerWatts) {
@@ -157,7 +157,7 @@ export class CalculateRouteBioenergeticsUseCase {
         const totalDurationMinutes = totalDurationSeconds / 60.0;
         const totalDurationHours = totalDurationSeconds / 3600.0;
         const estimatedTotalEnergyKJ = estimatedTotalEnergyJoules / 1000.0;
-        const estimatedTotalEnergyKcal = estimatedTotalEnergyJoules / 4184.0;
+        const estimatedTotalEnergyKcal = estimatedTotalEnergyJoules / JOULES_PER_KCAL;
         const durationAboveContinuousThresholdMinutes = durationAboveContinuousSeconds / 60.0;
 
         return {

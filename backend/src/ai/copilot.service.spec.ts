@@ -30,7 +30,7 @@ describe('CopilotService & Gemini Model Configuration', () => {
     const mockMissionService = {} as unknown as MissionService;
     const mockRouteService = {} as unknown as RouteService;
 
-    it('should default to official "gemini-2.5-flash-lite" model when env is unset', () => {
+    it('should default to official "gemini-3.5-flash-lite" model when env is unset', () => {
         const mockConfig = {
             get: (key: string) => (key === 'GEMINI_MODEL' ? null : null),
         } as unknown as ConfigService;
@@ -42,7 +42,7 @@ describe('CopilotService & Gemini Model Configuration', () => {
             mockRouteService,
         );
 
-        expect((service as any).model).toBe('gemini-2.5-flash-lite');
+        expect((service as any).model).toBe('gemini-3.5-flash-lite');
     });
 
     it('should allow overriding GEMINI_MODEL via ConfigService', () => {
@@ -83,19 +83,7 @@ describe('CopilotService & Gemini Model Configuration', () => {
     });
 
     it('should execute local intent deterministically without API key', async () => {
-        const mockConfig = {
-            get: () => null,
-        } as unknown as ConfigService;
-
-        const service = new CopilotService(
-            mockConfig,
-            mockIntentService,
-            mockMissionService,
-            mockRouteService,
-        );
-
-        // When API key is null, handleUserRequest returns the config instruction first.
-        // Let's verify that when an API key is provided, local intent intercepts before calling Gemini:
+        // When an API key is provided, local intent intercepts before calling Gemini:
         const mockConfigWithKey = {
             get: (key: string) => (key === 'GEMINI_API_KEY' ? 'test-key' : null),
         } as unknown as ConfigService;

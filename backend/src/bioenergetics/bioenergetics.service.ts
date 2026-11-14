@@ -29,6 +29,16 @@ export class BioenergeticsService {
         if (!overrides) {
             return this.getDefaultProfile();
         }
+        if (
+            overrides.suitLeakageRateLpm !== undefined &&
+            (typeof overrides.suitLeakageRateLpm !== 'number' ||
+                !Number.isFinite(overrides.suitLeakageRateLpm) ||
+                overrides.suitLeakageRateLpm < 0)
+        ) {
+            throw new Error(
+                `Invalid suitLeakageRateLpm: ${overrides.suitLeakageRateLpm}. Must be a finite non-negative number.`,
+            );
+        }
         return {
             ...DEFAULT_ASTRONAUT_PROFILE,
             ...overrides,
