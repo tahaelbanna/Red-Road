@@ -5,6 +5,7 @@ import { AppService } from './app.service.js';
 import { TerrainModule } from './terrain/terrain.module.js';
 import { RouteModule } from './route/route.module.js';
 import { MissionModule } from './mission/mission.module.js';
+import { AiModule } from './ai/ai.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { MissionModule } from './mission/mission.module.js';
     TerrainModule,
     RouteModule,
     MissionModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
