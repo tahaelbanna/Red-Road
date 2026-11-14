@@ -4,8 +4,9 @@ import math
 MARS_RADIUS_M = 3396190.0
 STANDARD_PARALLEL_DEG = 18.4663
 
-TERRAIN_FILE = "/home/tahaelbanna/Nasa Space Apps/backend/data/terrain/terrain_jezero_crater.json"
-OUTPUT_FILE = "/home/tahaelbanna/Nasa Space Apps/backend/data/terrain/scientific_targets_jezero_crater.json"
+
+TERRAIN_FILE = "/home/tahaelbanna/Taha Elbanna/Code_Environment/Projects/Red Road/backend/data/terrain/terrain_jezero_crater.json"
+OUTPUT_FILE = "/home/tahaelbanna/Taha Elbanna/Code_Environment/Projects/Red Road/backend/data/terrain/scientific_targets_jezero_crater.json"
 
 RAW_TARGETS = [
     {
