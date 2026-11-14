@@ -1,0 +1,37 @@
+import { AstronautProfile } from '../interfaces/astronaut-profile.interface.js';
+import {
+    DEFAULT_NOMINAL_SPEED_MPS,
+    DEFAULT_MIN_SPEED_MPS,
+    DEFAULT_MAX_SPEED_MPS,
+    DEFAULT_INTERNAL_WORK_FRACTION,
+    DEFAULT_EFFECTIVE_MASS_FACTOR,
+    DEFAULT_SUIT_JOINT_POWER_NOMINAL,
+    DEFAULT_BASAL_METABOLIC_RATE_PER_KG,
+    DEFAULT_SUIT_LEAKAGE_LPM,
+    DEFAULT_USABLE_OXYGEN_GRAMS,
+    DEFAULT_OXYGEN_RESERVE_FRACTION,
+    DEFAULT_MAX_EVA_DURATION_MINUTES,
+    DEFAULT_MAX_CONTINUOUS_POWER_WATTS,
+    DEFAULT_PEAK_REDLINE_POWER_WATTS,
+    DEFAULT_TERRAIN_IMPEDANCE,
+} from './bioenergetics.constants.js';
+
+export const DEFAULT_ASTRONAUT_PROFILE: AstronautProfile = {
+    crewMassKg: 80.0,
+    suitMassKg: 120.0,
+    payloadMassKg: 15.0,
+    effectiveMassFactor: DEFAULT_EFFECTIVE_MASS_FACTOR,
+    nominalWalkingSpeedMps: DEFAULT_NOMINAL_SPEED_MPS,
+    maxWalkingSpeedMps: DEFAULT_MAX_SPEED_MPS,
+    minWalkingSpeedMps: DEFAULT_MIN_SPEED_MPS,
+    internalWorkFraction: DEFAULT_INTERNAL_WORK_FRACTION,
+    suitJointWorkNominalWatts: DEFAULT_SUIT_JOINT_POWER_NOMINAL,
+    basalMetabolicRatePerKg: DEFAULT_BASAL_METABOLIC_RATE_PER_KG,
+    suitLeakageRateLpm: DEFAULT_SUIT_LEAKAGE_LPM,
+    usableOxygenGrams: DEFAULT_USABLE_OXYGEN_GRAMS,
+    oxygenReserveFraction: DEFAULT_OXYGEN_RESERVE_FRACTION,
+    maxEvaDurationMinutes: DEFAULT_MAX_EVA_DURATION_MINUTES,
+    maxContinuousPowerWatts: DEFAULT_MAX_CONTINUOUS_POWER_WATTS,
+    peakRedLinePowerWatts: DEFAULT_PEAK_REDLINE_POWER_WATTS,
+    defaultTerrainImpedance: DEFAULT_TERRAIN_IMPEDANCE,
+};

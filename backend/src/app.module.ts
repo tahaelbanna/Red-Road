@@ -4,6 +4,7 @@ import { TerrainModule } from './terrain/terrain.module.js';
 import { RouteModule } from './route/route.module.js';
 import { MissionModule } from './mission/mission.module.js';
 import { AIModule } from './ai/ai.module.js';
+import { BioenergeticsModule } from './bioenergetics/bioenergetics.module.js';
 
 @Module({
     imports: [
@@ -14,6 +15,7 @@ import { AIModule } from './ai/ai.module.js';
         RouteModule,
         MissionModule,
         AIModule,
+        BioenergeticsModule,
     ],
 })
 export class AppModule {}

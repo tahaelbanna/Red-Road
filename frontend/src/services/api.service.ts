@@ -1,7 +1,10 @@
 import { BACKEND_URL, META_PATH } from "../config/index";
 import {
+  type AstronautProfile,
+  type EvaFeasibilityResult,
   type FeasibilityRequest,
   type HeightmapMeta,
+  type RouteBioenergeticsSummary,
   type RoutePlanRequest,
   type RoutePlanResponse,
   type ScientificTarget,
@@ -26,6 +29,40 @@ export async function planRoute(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
+  });
+  return res.json();
+}
+
+export async function fetchDefaultAstronautProfile(): Promise<AstronautProfile> {
+  const res = await fetch(`${BACKEND_URL}/api/bioenergetics/profile/default`);
+  return res.json();
+}
+
+export async function fetchRouteBioenergetics(dto: {
+  region: string;
+  path: Array<{ row: number; col: number }>;
+  profile?: Partial<AstronautProfile>;
+  reverse?: boolean;
+  stationaryTimeHours?: number;
+}): Promise<RouteBioenergeticsSummary> {
+  const res = await fetch(`${BACKEND_URL}/api/bioenergetics/calculate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
+  });
+  return res.json();
+}
+
+export async function fetchEvaAssessment(dto: {
+  region: string;
+  path: Array<{ row: number; col: number }>;
+  profile?: Partial<AstronautProfile>;
+  stationaryTimeHours?: number;
+}): Promise<EvaFeasibilityResult> {
+  const res = await fetch(`${BACKEND_URL}/api/bioenergetics/eva-assessment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dto),
   });
   return res.json();
 }

@@ -21,6 +21,7 @@ import {
   clearStartMarker,
 } from "./scene/terrain-builder";
 import {
+  fetchEvaAssessment,
   fetchFeasibility,
   fetchHeightmapMeta,
   fetchScientificTargets,
@@ -29,6 +30,7 @@ import {
 import { Sound } from "./sound";
 import {
   appState,
+  currentAstronautProfile,
   currentEnvLimits,
   currentOxygenConfig,
   currentTraversalConfig,
@@ -314,6 +316,7 @@ async function handleCellPicked(cell: { row: number; col: number }) {
     appState.startMarker = buildMarker(gridCellToScenePosition(cell), 0x00ff00);
     appState.scene.add(appState.startMarker);
     updateStatusText();
+    updateFeasibilityResultUI(null);
   } else if (!appState.selectedEnd) {
     appState.selectedEnd = cell;
     clearEndMarker();
@@ -324,11 +327,14 @@ async function handleCellPicked(cell: { row: number; col: number }) {
   } else {
     appState.selectedStart = cell;
     appState.selectedEnd = null;
+    appState.currentPlannedPath = null;
+    appState.currentEvaFeasibility = null;
     clearStartMarker();
     clearEndMarker();
     clearRouteLine();
     hideRouteReport();
     showExplanationEmptyState();
+    updateFeasibilityResultUI(null);
     appState.startMarker = buildMarker(gridCellToScenePosition(cell), 0x00ff00);
     appState.scene.add(appState.startMarker);
     updateStatusText();
@@ -355,6 +361,7 @@ export async function requestAndDrawRoute() {
     clearRouteLine();
 
     if (response.found) {
+      appState.currentPlannedPath = response.path;
       appState.routeLine = buildRouteLine(response.path);
       appState.scene.add(appState.routeLine);
       console.log("Route drawn:", response.metrics);
@@ -370,27 +377,45 @@ export async function requestAndDrawRoute() {
       } else {
         showExplanationEmptyState();
       }
+
+      // Phase 2B/2C Bioenergetics & Safe Return Assessment
+      try {
+        const evaAssessment = await fetchEvaAssessment({
+          region: "jezero_crater",
+          path: response.path,
+          profile: currentAstronautProfile,
+          stationaryTimeHours: currentTraversalConfig.stationaryTimeHours,
+        });
+        appState.currentEvaFeasibility = evaAssessment;
+        updateFeasibilityResultUI(evaAssessment);
+      } catch (evaErr) {
+        console.warn("Bioenergetics assessment failed, using legacy fallback:", evaErr);
+        const feasibilityResponse = await fetchFeasibility({
+          durationHours: response.metrics
+            ? response.metrics.estimatedTravelTimeHours
+            : 0,
+          routeFound: response.found,
+          oxygenConfig: currentOxygenConfig,
+          envLimits: currentEnvLimits,
+        });
+        updateFeasibilityResultUI(feasibilityResponse);
+      }
     } else {
+      appState.currentPlannedPath = null;
+      appState.currentEvaFeasibility = null;
       (window as any).currentRouteMetrics = null;
       console.warn("No path found between the selected points.");
       hideRouteReport();
       showExplanationErrorState();
+      updateFeasibilityResultUI(null);
     }
 
     updateStatusText(response.found ? response.metrics : undefined);
-
-    const feasibilityResponse = await fetchFeasibility({
-      durationHours: response.metrics
-        ? response.metrics.estimatedTravelTimeHours
-        : 0,
-      routeFound: response.found,
-      oxygenConfig: currentOxygenConfig,
-      envLimits: currentEnvLimits,
-    });
-    updateFeasibilityResultUI(feasibilityResponse);
     return response.found;
   } catch (error) {
     console.error("Error planning route:", error);
+    appState.currentPlannedPath = null;
+    appState.currentEvaFeasibility = null;
     clearRouteLine();
     hideRouteReport();
     showExplanationErrorState();

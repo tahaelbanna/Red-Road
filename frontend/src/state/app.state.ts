@@ -1,13 +1,35 @@
 import * as THREE from "three";
 import { MISSION_DEFAULT_PRIORITIES } from "../config/index";
 import {
+  type AstronautProfile,
   type EnvironmentalLimits,
+  type EvaFeasibilityResult,
   type HeightmapMeta,
   type OxygenBudgetConfig,
   type Priorities,
   type ScientificTarget,
   type TraversalConfig,
 } from "../interfaces/index";
+
+export const currentAstronautProfile: AstronautProfile = {
+  crewMassKg: 80.0,
+  suitMassKg: 120.0,
+  payloadMassKg: 15.0,
+  effectiveMassFactor: 0.70,
+  nominalWalkingSpeedMps: 1.00,
+  maxWalkingSpeedMps: 1.20,
+  minWalkingSpeedMps: 0.30,
+  internalWorkFraction: 0.40,
+  suitJointWorkNominalWatts: 65.0,
+  basalMetabolicRatePerKg: 1.20,
+  suitLeakageRateLpm: 0.10,
+  usableOxygenGrams: 1000.0,
+  oxygenReserveFraction: 0.30,
+  maxEvaDurationMinutes: 480.0,
+  maxContinuousPowerWatts: 450.0,
+  peakRedLinePowerWatts: 650.0,
+  defaultTerrainImpedance: 1.15,
+};
 
 export const currentOxygenConfig: OxygenBudgetConfig = {
   supplyKg: 0.55,
@@ -56,6 +78,9 @@ export const appState = {
   currentPriorities: {
     ...MISSION_DEFAULT_PRIORITIES["HUMAN_EXPLORATION"],
   } as Priorities,
+
+  currentPlannedPath: null as Array<{ row: number; col: number }> | null,
+  currentEvaFeasibility: null as EvaFeasibilityResult | null,
 
   startMarker: null as THREE.Mesh | null,
   endMarker: null as THREE.Mesh | null,

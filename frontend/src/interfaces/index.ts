@@ -11,3 +11,7 @@ export * from "./oxygen-budget-config.interface";
 export * from "./environmental-limits.interface";
 export * from "./traversal-config.interface";
 export * from "./feasibility-request.interface";
+export * from "./astronaut-profile.interface";
+export * from "./edge-bioenergetics.interface";
+export * from "./route-bioenergetics.interface";
+export * from "./eva-feasibility.interface";
