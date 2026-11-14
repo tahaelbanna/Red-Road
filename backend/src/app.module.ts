@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { TerrainModule } from './terrain/terrain.module.js';
+import { RouteModule } from './route/route.module.js';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { TerrainModule } from './terrain/terrain.module.js';
       isGlobal: true, // Make env variables accessible globally
     }),
     TerrainModule,
+    RouteModule,
   ],
   controllers: [AppController],
   providers: [AppService],
