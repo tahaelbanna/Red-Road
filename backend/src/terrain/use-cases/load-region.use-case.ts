@@ -8,12 +8,23 @@ export class LoadRegionUseCase {
     private readonly logger = new Logger(LoadRegionUseCase.name);
 
     execute(regionName: string): TerrainData {
-        const filePath = path.join(
-            process.cwd(),
-            'data',
-            'terrain',
-            `terrain_${regionName}.json`,
-        );
+        const candidatePaths = [
+            path.join(
+                process.cwd(),
+                'data',
+                'terrain',
+                `terrain_${regionName}.json`,
+            ),
+            path.join(
+                process.cwd(),
+                'backend',
+                'data',
+                'terrain',
+                `terrain_${regionName}.json`,
+            ),
+        ];
+        const filePath =
+            candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
 
         this.logger.log(`Loading terrain data for region: ${regionName}`);
         const raw = fs.readFileSync(filePath, 'utf-8');

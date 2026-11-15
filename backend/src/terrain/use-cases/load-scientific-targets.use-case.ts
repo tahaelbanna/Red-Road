@@ -11,12 +11,23 @@ export class LoadScientificTargetsUseCase {
     private readonly logger = new Logger(LoadScientificTargetsUseCase.name);
 
     execute(regionName: string): ScientificTarget[] {
-        const filePath = path.join(
-            process.cwd(),
-            'data',
-            'terrain',
-            `scientific_targets_${regionName}.json`,
-        );
+        const candidatePaths = [
+            path.join(
+                process.cwd(),
+                'data',
+                'terrain',
+                `scientific_targets_${regionName}.json`,
+            ),
+            path.join(
+                process.cwd(),
+                'backend',
+                'data',
+                'terrain',
+                `scientific_targets_${regionName}.json`,
+            ),
+        ];
+        const filePath =
+            candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
 
         if (!fs.existsSync(filePath)) {
             this.logger.warn(
