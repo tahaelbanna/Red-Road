@@ -2,7 +2,13 @@ import { type Priorities } from "../interfaces/index.js";
 
 export const HEIGHTMAP_PATH = "/data/heightmap_jezero_crater.png";
 export const META_PATH = "/data/heightmap_jezero_crater_meta.json";
-export const BACKEND_URL = "http://localhost:3000";
+
+const envBackendUrl = (
+  import.meta.env.VITE_BACKEND_URL as string | undefined
+)?.trim();
+export const BACKEND_URL = envBackendUrl
+  ? envBackendUrl.replace(/\/+$/, "")
+  : "http://localhost:3000";
 
 export const MESH_RESOLUTION = 256;
 export const TERRAIN_GRID_ROWS = 1013;
